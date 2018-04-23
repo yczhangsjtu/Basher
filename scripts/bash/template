@@ -1,0 +1,10 @@
+#!/bin/bash
+
+target=cpp
+template_dir=$HOME/.basher/scripts/templates
+
+if [ $# -gt 0 ]; then
+	target="$1"
+fi
+
+cat $template_dir/$target
