@@ -7,8 +7,10 @@ int main() {
 	if (i) {
 		printf("Hello, world!\n");
 		if (j) {
-			printf("Hello, world!\n");
+			printf("Hello, "
+					 "world!\n");
 		}
 	}
 	return 0;
 }
+

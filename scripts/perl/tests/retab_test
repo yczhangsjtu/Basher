@@ -2,7 +2,31 @@
 
 mv data/retab_test.c.backup data/retab_test.c
 ../retab data/retab_test.c --from=4 --to=2
-diff data/retab_test.c data/retab_test.c.result &> /dev/null
+diff data/retab_test.c data/retab_test.c.result.1 &> /dev/null
+if [ "$?" != "0" ]; then
+  exit -1
+fi
+
+mv data/retab_test.c.backup data/retab_test.c
+../retab data/retab_test.c --from=4 --to=2 --tab
+diff data/retab_test.c data/retab_test.c.result.2 &> /dev/null
+if [ "$?" != "0" ]; then
+  exit -1
+fi
+
+mv data/retab_test_2.c.backup data/retab_test_2.c
+../retab data/retab_test_2.c --from=4 --to=2
+diff data/retab_test_2.c data/retab_test_2.c.result.1 &> /dev/null
+if [ "$?" != "0" ]; then
+  exit -1
+fi
+
+mv data/retab_test_2.c.backup data/retab_test_2.c
+../retab data/retab_test_2.c --from=4 --to=2 --tab
+diff data/retab_test_2.c data/retab_test_2.c.result.2 &> /dev/null
+if [ "$?" != "0" ]; then
+  exit -1
+fi
 
 ../retab data/retab_test.c --from=0 --to=2 &> /dev/null
 if [ "$?" == "0" ]; then

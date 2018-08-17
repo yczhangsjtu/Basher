@@ -3,25 +3,28 @@
 use strict;
 
 use Getopt::Long;
+use Pod::Usage;
 
 $^I = ".backup";
 
 my $from = 2;
 my $to = 2;
+my $tab = '';
+my $help = '';
 my $filename = '';
 
 if(@ARGV > 0) {
   $filename = $ARGV[0];
 } else {
-  print "Usage: retab filename [options]\n";
-  print "  options\n";
-  print "  --from f  positive integer specifying current indent length\n";
-  print "  --to t    positive integer specifying expected indent length\n";
-  exit;
+  $help = 1;
 }
 
-GetOptions('from=i' => \$from,
-           'to=i' => \$to);
+GetOptions('from|f=i' => \$from,
+           'to|d=i' => \$to,
+           'tab|t!' => \$tab,
+           'help|h' => \$help);
+
+pod2usage(1) if $help;
 
 if($from < 1) {
   die "Parameter 'from' must be positive";
@@ -47,8 +50,51 @@ if($to < 1) {
         }
         $space = substr($space, 1);
       }
-      $line =~ s|^(\s+)|(' ' x $to) x ($len/$from)|e;
+      my $main = int($len/$from);
+      my $other = $len % $from;
+      my $replace = (' ' x $to) x $main . ' ' x $other;
+      if($tab) {
+        $main += int($other / $to);
+        $other %= $to;
+        $replace = "\t" x $main . ' ' x $other;
+      }
+      $line =~ s|^(\s+)|$replace|e;
     }
     print $line."\n";
   }
 }
+
+__END__
+
+=head1 NAME
+
+retab - transform the input file into specified tab width
+
+=head1 SYNOPSIS
+
+retab filename [options]
+
+ Options:
+   -help            brief help message
+   -from            original tab width
+   -to              desired tab width
+   -tab             use tab in the output
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-help>
+
+Print a brief help message and exits.
+
+=back
+
+=head1 DESCRIPTION
+
+B<This program> will read the given input file and compute the
+number of spaces in the head of each line, using the `from'
+parameter which specifies the original tab width. It then
+output contents with tab width reset to `to'.
+
+=cut
