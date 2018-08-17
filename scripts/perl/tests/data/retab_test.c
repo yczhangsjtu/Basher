@@ -1,0 +1,14 @@
+#include <stdio.h>
+
+int main() {
+
+  int i = 0;
+  int j = 1;
+  if (i) {
+    printf("Hello, world!\n");
+    if (j) {
+      printf("Hello, world!\n");
+    }
+  }
+  return 0;
+}

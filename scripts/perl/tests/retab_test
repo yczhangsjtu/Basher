@@ -1,0 +1,17 @@
+#!/bin/bash
+
+mv data/retab_test.c.backup data/retab_test.c
+../retab data/retab_test.c --from=4 --to=2
+diff data/retab_test.c data/retab_test.c.result &> /dev/null
+
+../retab data/retab_test.c --from=0 --to=2 &> /dev/null
+if [ "$?" == "0" ]; then
+  echo "did not handle from=0 case"
+  exit -1
+fi
+
+../retab data/retab_test.c --from=2 --to=0 &> /dev/null
+if [ "$?" == "0" ]; then
+  echo "did not handle to=0 case"
+  exit -1
+fi

@@ -1,0 +1,54 @@
+#!/usr/bin/perl
+
+use strict;
+
+use Getopt::Long;
+
+$^I = ".backup";
+
+my $from = 2;
+my $to = 2;
+my $filename = '';
+
+if(@ARGV > 0) {
+  $filename = $ARGV[0];
+} else {
+  print "Usage: retab filename [options]\n";
+  print "  options\n";
+  print "  --from f  positive integer specifying current indent length\n";
+  print "  --to t    positive integer specifying expected indent length\n";
+  exit;
+}
+
+GetOptions('from=i' => \$from,
+           'to=i' => \$to);
+
+if($from < 1) {
+  die "Parameter 'from' must be positive";
+}
+if($to < 1) {
+  die "Parameter 'to' must be positive";
+}
+
+{
+  local @ARGV = ($filename);
+  while(<>) {
+    chomp $_;
+    my $line = $_;
+    if(/^(\s+)/) {
+      my $space = $1;
+      my $len = 0;
+      while($space) {
+        my $char = substr($space, 0, 1);
+        if($char eq "\t") {
+          $len = (int($len / $from) + 1) * $from;
+        } else {
+          $len++;
+        }
+        $space = substr($space, 1);
+      }
+      $line =~ s|^(\s+)|(' ' x $to) x ($len/$from)|e;
+    }
+    print $line."\n";
+  }
+}

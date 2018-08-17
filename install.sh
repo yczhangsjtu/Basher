@@ -15,5 +15,7 @@ fi
 cp -r ./scripts $target_dir
 cp basher.bashrc $target_dir
 
-echo "Please append the following into your .bashrc file:"
-echo "  . ~/.basher/basher.bashrc"
+if ! [ -n "$BASHER" ]; then
+	echo "Please append the following into your .bashrc file:"
+	echo "  . ~/.basher/basher.bashrc"
+fi
