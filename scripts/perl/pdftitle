@@ -1,0 +1,61 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use PDF::API2;
+use File::Basename;
+use File::Copy;
+use Carp;
+
+sub get_pdf_title {
+  my $filename = $_[0];
+  $filename or die "Missing filename";
+  my $pdf;
+  eval {
+    $pdf = PDF::API2->open($filename);
+  };
+  if($@) {
+    carp $@;
+    return;
+  }
+  my %pdfinfo = $pdf->info;
+  $pdfinfo{Title};
+}
+
+sub change_title {
+  my $path = $_[0];
+  $path or die "Missing filename";
+  my $title = get_pdf_title("$path");
+  if($title) {
+    my($filename, $directories, $suffix) = fileparse($path);
+    $title =~ s/[:]/ /g;
+    print "Rename $filename to $title.pdf? [n] ";
+    if(<STDIN> =~ /^(y|Y|yes|Yes|YES)\n$/) {
+      print "$path -> $directories/$title.pdf\n";
+      move("$path", "$directories/$title.pdf");
+    }
+  }
+}
+
+my $path = shift;
+if(!$path) {
+  print "Usage: $0 [path to file or dir]\n";
+  exit;
+};
+
+if(-f $path) {
+  change_title($path);
+} elsif (-d $path) {
+  opendir(DIR, $path) || die "can't opendir $path: $!";
+  my @files = readdir DIR;
+  closedir DIR;
+
+  foreach my $filename (@files) {
+    if($filename =~ /.*\.pdf$/) {
+      change_title("$path/$filename");
+    }
+  }
+} else {
+  die "Invalid path: $path";
+}

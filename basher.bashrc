@@ -1,5 +1,10 @@
 export BASHER="basher"
 
-alias template='$HOME/.basher/scripts/bash/template'
+script_path="$HOME/.basher/scripts"
+bash_script_path=`echo "$script_path/bash"`
+alias template="$bash_script_path/template"
 
-alias retab='$HOME/.basher/scripts/perl/retab'
+perl_script_path=`echo "$script_path/perl"`
+alias retab="$perl_script_path/retab"
+alias autoclean="$perl_script_path/autoclean"
+alias pdftitle="$perl_script_path/pdftitle"

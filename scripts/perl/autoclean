@@ -1,0 +1,78 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use File::Copy;
+use File::Path qw(make_path);
+use JSON::Parse ':all';
+use Cwd qw(abs_path getcwd);
+use Carp;
+
+my @items;
+eval {
+  my $items_ref = json_file_to_perl abs_path($0) . '.conf';
+  @items = @$items_ref;
+};
+
+if($@) {
+  carp $@;
+  die "Failed to load conf file.";
+}
+
+my $dir;
+if(@ARGV > 0) {
+  $dir = $ARGV[0];
+} else {
+  print "Usage: $0 /path/to/clean\n";
+  print "  Please modify ~/.basher/scripts/perl/autoclean.conf before executing this command\n";
+  exit;
+}
+
+opendir(DIR, $dir) || die "can't opendir $dir: $!";
+my @files = readdir DIR;
+closedir DIR;
+
+foreach my $filename (@files) {
+  my $move;
+  if($filename eq "." || $filename eq "..") {
+    next;
+  }
+  foreach my $item (@items) {
+    $move = 0;
+    my $pattern = $item->{pattern};
+    if($filename =~ /^$pattern$/) {
+      my $dest = $item->{path};
+      if($dest =~ "^~/.*") {
+        $dest = "$ENV{'HOME'}" . substr($dest, 1)
+      }
+      my $need_confirm = $item->{need_confirm};
+      if($need_confirm) {
+        print "Moving $filename to $dest? [y] ";
+        if(<STDIN> =~ /^(y|Y|yes|Yes|YES)?\n$/) {
+          $move = 1;
+        }
+      } else {
+        $move = 1;
+      }
+      if($move) {
+        my $auto_mkdir = $item->{auto_mkdir};
+        if($auto_mkdir) {
+          make_path $dest;
+        }
+        if(-d $dest) {
+          print "Moving $filename to $dest/$filename\n";
+          move("$dir/$filename", "$dest/$filename");
+        } else {
+          die "$dest is not a directory";
+        }
+      }
+    }
+    if($move) {
+      last;
+    }
+  }
+  if(!$move) {
+    print "$filename is not moved\n";
+  }
+}
