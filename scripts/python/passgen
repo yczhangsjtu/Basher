@@ -1,0 +1,35 @@
+#!/usr/local/bin/python3
+
+import getpass
+from Crypto.Hash import SHA256
+
+def tos(b):
+  return 'bcdfghjklmnpqrstvwxyzBCDFGHJKLMNPQRSTVWXYZ'[b[0] % 42] \
+       + 'aeiouAEIOU'[b[1] % 10]
+
+def ton(b):
+  ret = (b[0]*65536+b[1]*256+b[2]) % 1000000
+  return '%06d' % ret
+
+def password(master_key, level_key, identity, version):
+  context = SHA256.new()
+  context.update(bytes(master_key + ':', 'utf-8'))
+  context.update(bytes(level_key + ':', 'utf-8'))
+  context.update(bytes(identity + ':', 'utf-8'))
+  context.update(bytes(version, 'utf-8'))
+  digest = context.digest()
+
+  return (tos(digest[0:2]) + tos(digest[2:4]) + \
+        tos(digest[4:6]) + tos(digest[6:8]) + '@' + \
+        ton(digest[8:11]))
+
+
+if __name__ == '__main__':
+  try:
+    master_key = getpass.getpass('Master Key: ')
+    level_key = getpass.getpass('Level Key: ')
+    identity = getpass.getpass('ID: ')
+    version = getpass.getpass('Version: ')
+    print(password(master_key, level_key, identity, version))
+  except:
+    print('Keyboard Interrupt')
