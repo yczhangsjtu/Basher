@@ -1,0 +1,68 @@
+#!/usr/local/bin/python3
+
+import re
+from os import listdir, rename, getcwd
+from os.path import isfile, join, basename, dirname
+
+dry_run = False
+label_length_limit = 32
+
+def my_rename(path, oldname, newname):
+  if oldname == newname:
+    print("Old name is same to new name (%s)" % oldname)
+    return
+
+  if basename(path) != oldname:
+    print("Basename of given path is not %s, something is wrong" % oldname)
+    print("Given path is %s" % path)
+    exit(-1)
+
+  newpath = join(dirname(path), newname)
+  print("Renaming:\n%s\nto\n%s" % (path, newpath))
+  if not dry_run:
+    rename(path, newpath)
+
+def make_label(path, label):
+  filename = basename(path)
+  if re.match(r'^\[[a-zA-Z0-9&+# ]+\] ', filename):
+    if filename.startswith('[%s] ' % label):
+      return
+
+    result = input("File '%s' already has a different label, relabel it? [y/N]" % filename)
+    if result.startswith('y') or result.startswith('Y'):
+      newname = re.replace(r'^\[[a-zA-Z0-9&+# ]+\]', '[%s]' % label, filename)
+      my_rename(path, filename, newname)
+      return
+
+  else:
+    newname = '[%s] %s' % (label, filename)
+    my_rename(path, filename, newname)
+
+
+def ask_if_dive(path):
+  result = input('(%s) is a directory, dive into it? [Y/n]' % path)
+  if result.startswith('n') or result.startswith('N'):
+    return False
+  return True
+
+def go_through(directory):
+  items = listdir(directory)
+  for item in items:
+    if item.startswith('.'):
+      continue
+
+    fullpath = join(directory, item)
+    diveinto = (not isfile(fullpath)) and \
+               (len(item) <= label_length_limit) and \
+               re.match(r'^[a-zA-Z0-9&+# ]+$', item)
+    if diveinto:
+      diveinto = ask_if_dive(item)
+
+    if diveinto:
+      go_through(fullpath)
+    else:
+      make_label(fullpath, basename(directory))
+
+if __name__ == "__main__":
+  root = getcwd()
+  go_through(root)

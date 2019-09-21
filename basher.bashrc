@@ -11,3 +11,4 @@ alias pdftitle="$perl_script_path/pdftitle"
 
 python_script_path=`echo "$script_path/python"`
 alias passgen="$python_script_path/passgen"
+alias label-with-folder="$python_script_path/label-with-folder"
