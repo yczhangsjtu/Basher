@@ -5,6 +5,7 @@ from os import listdir, rename, getcwd
 from os.path import isfile, join, basename, dirname
 
 dry_run = False
+verbose = False
 label_length_limit = 32
 
 def my_rename(path, oldname, newname):
@@ -18,7 +19,10 @@ def my_rename(path, oldname, newname):
     exit(-1)
 
   newpath = join(dirname(path), newname)
-  print("Renaming:\n%s\nto\n%s" % (path, newpath))
+
+  if verbose or dry_run:
+    print("Renaming:\n%s\nto\n%s" % (path, newpath))
+
   if not dry_run:
     rename(path, newpath)
 
