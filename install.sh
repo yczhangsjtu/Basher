@@ -1,6 +1,6 @@
 #!/bin/bash
 
-backups="scripts/perl/autoclean.conf"
+backups="scripts/perl/autoclean.conf scripts/python/autoclean.conf"
 
 if [ -n "$BASHER" ] && [ "$1" != "reinstall" ] ; then
 	echo "Already installed"

@@ -1,0 +1,194 @@
+#!/usr/local/bin/python3
+
+import getopt, sys
+import json
+import re
+from os.path import isdir, join, basename, abspath, expanduser, realpath, dirname, exists
+from os import listdir, rename, mkdir
+
+from utils import ask_if_dive, ask_if_default_false
+
+verbose = False
+rules = None
+conf = None
+skips = None
+candidates = None
+dry_run = False
+
+def usage():
+  print(
+"""
+usage: %s [options] path
+  
+  options
+
+  -h --help    Print this help text
+  -v --verbose Verbose mode
+  -d --dry     Dry run (only print, do not move)
+
+  "Note: Please modify ~/.basher/scripts/python/autoclean.conf before executing this command\n";
+""" % (sys.argv[0])
+  )
+
+def move_file(rule, path):
+  need_confirm = True
+  if "need_confirm" in rule:
+    need_confirm = rule["need_confirm"]
+
+  dest = abspath(expanduser(rule["path"]))
+  print("Destination is %s" % dest)
+  newpath = join(dest, basename(path))
+  print("Filename is %s" % basename(path))
+  domove = True
+
+  if need_confirm:
+    domove = ask_if_default_false("Move %s to %s?" % (path, newpath))
+
+  if domove and (verbose or dry_run):
+    print("Moving %s to %s" % (path, newpath))
+
+  if domove and not dry_run:
+    if not isdir(dest):
+      if "auto_mkdir" in rule and rule["auto_mkdir"]:
+        mkdir(dest)
+      else:
+        print("Directory %s not exist, skipping" % dest)
+
+    rename(path, newpath)
+    return True
+
+  return domove
+
+def move_file_if_match(rule, path):
+  if "pattern" not in rule:
+    print("No pattern in rule\n%s" % json.dumps(rule, indent=4))
+    sys.exit(-1)
+  pattern = rule["pattern"]
+
+  if "path" not in rule:
+    print("No path in rule\n%s" % json.dumps(rule, indent=4))
+    sys.exit(-1)
+
+  if re.match(pattern, basename(path)):
+    return move_file(rule, path)
+
+  return False
+
+def move_file_by_prompt(path):
+  print("File %s does not match any rule" % basename(path))
+  print("Please specify what to do with it:")
+  print()
+  for i in range(len(candidates)):
+    print("%d. Move to %s" % (i, candidates[i]))
+  print("%d+. Skip" % len(candidates))
+
+  num = input("Input the number to take action for file %s: " % basename(path))
+
+  try:
+    num = int(num)
+  except:
+    print("Skipping")
+    return False
+    
+  if num >= 0 and num < len(candidates):
+    return move_file({
+      "need_confirm" : True,
+      "auto_mkdir" : False,
+      "path" : candidates[num]
+    }, path)
+
+  print("Skipping")
+  return False
+
+def try_move_file(path):
+  for rule in rules:
+    if move_file_if_match(rule, path):
+      return True
+
+  move_file_by_prompt(path)
+
+def skip_file(filename):
+  for skip_pattern in skips:
+    if re.match(skip_pattern, filename):
+      return True
+  return False
+
+def autoclean(path):
+  if exists(path) and isdir(path):
+    items = listdir(path)
+    for item in items:
+      if skip_file(item):
+        continue
+
+      fullpath = join(path, item)
+      if isdir(fullpath):
+        answer = ask_if_dive(item)
+        if answer:
+          autoclean(fullpath)
+          continue
+
+      try_move_file(fullpath)
+
+if __name__ == "__main__":
+  try:
+    opts, args = getopt.getopt(sys.argv[1:], "hvd", ["help", "verbose", "dry"])
+  except getopt.GetoptError as err:
+    print(str(err))
+    usage()
+    sys.exit(-1)
+
+  if len(args) < 1:
+    usage()
+    sys.exit(-1)
+
+  for opt, arg in opts:
+    if opt in ("-h", "--help"):
+      usage()
+      sys.exit(0)
+
+    if opt in ("-v", "--verbose"):
+      verbose = True
+    elif opt in ("-d", "--dry"):
+      dry_run = True
+    else:
+      assert False, "Unrecognized option: %s" % opt
+
+  with open(join(dirname(realpath(__file__)), "autoclean.conf")) as f:
+    conf = json.loads(f.read())
+    if "rules" in conf:
+      rules = conf["rules"]
+    if "skips" in conf:
+      skips = conf["skips"]
+    else:
+      skips = []
+    candidates = [rule["path"] for rule in rules]
+    if "candidates" in conf:
+      candidates.extend(conf["candidates"])
+
+  if rules is None or len(rules) == 0:
+    print("Please add rules in your autoclean.conf file.")
+    print("Example:")
+    print("""
+
+{
+  "rules": [
+    {
+      "pattern": ".*\\\\.dmg",
+      "path": "~/Installers/MacOS",
+      "need_confirm": false,
+      "auto_mkdir": false
+    },
+    {
+      "pattern": ".*(Linux|Unix|LINUX|UNIX).*",
+      "path": "~/Installers/MacOS",
+      "need_confirm": false,
+      "auto_mkdir": false
+    }
+  ]
+}
+
+    """
+    )
+    sys.exit(-1)
+
+  autoclean(abspath(args[0]))

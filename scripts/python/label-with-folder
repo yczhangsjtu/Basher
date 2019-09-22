@@ -2,7 +2,7 @@
 
 import re
 from os import listdir, rename, getcwd
-from os.path import isfile, join, basename, dirname
+from os.path import isdir, join, basename, dirname
 
 dry_run = False
 verbose = False
@@ -56,7 +56,7 @@ def go_through(directory):
       continue
 
     fullpath = join(directory, item)
-    diveinto = (not isfile(fullpath)) and \
+    diveinto = isdir(fullpath) and \
                (len(item) <= label_length_limit) and \
                re.match(r'^[a-zA-Z0-9&+# ]+$', item)
     if diveinto:
