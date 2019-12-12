@@ -36,23 +36,23 @@ def move_file(rule, path):
     need_confirm = rule["need_confirm"]
 
   dest = abspath(expanduser(rule["path"]))
-  print("Destination is %s" % dest)
+  print("DEST IS\n  [%s]\n" % dest)
   newpath = join(dest, basename(path))
-  print("Filename is %s" % basename(path))
+  print("FILENAME IS\n  <%s>\n" % basename(path))
   domove = True
 
   if need_confirm:
-    domove = ask_if_default_false("Move %s to %s?" % (path, newpath))
+    domove = ask_if_default_false("MOVE\n  <%s>\nTO\n  [%s]?\n" % (basename(path), dest))
 
   if domove and (verbose or dry_run):
-    print("Moving %s to %s" % (path, newpath))
+    print("MOVING\n  <%s>\nTO\n  [%s]\n" % (basename(path), dest))
 
   if domove and not dry_run:
     if not isdir(dest):
       if "auto_mkdir" in rule and rule["auto_mkdir"]:
         mkdir(dest)
       else:
-        print("Directory %s not exist, skipping" % dest)
+        print("DIR\n  [%s]\nNOT EXIST, SKIPPING" % dest)
 
     rename(path, newpath)
     return True
@@ -75,14 +75,14 @@ def move_file_if_match(rule, path):
   return False
 
 def move_file_by_prompt(path):
-  print("File %s does not match any rule" % basename(path))
-  print("Please specify what to do with it:")
+  print("File\n <%s> \ndoes not match any rule" % basename(path))
+  print("Candidate actions:")
   print()
   for i in range(len(candidates)):
-    print("%d. Move to %s" % (i, candidates[i]))
+    print("%d. Move to [%s]" % (i, candidates[i]))
   print("%d+. Skip" % len(candidates))
 
-  num = input("Input the number to take action for file %s: " % basename(path))
+  num = input("ACTION FOR FILE\n  <%s>:\n" % basename(path))
 
   try:
     num = int(num)

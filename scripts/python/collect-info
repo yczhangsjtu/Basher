@@ -1,0 +1,58 @@
+#!/usr/local/bin/python3
+
+from PyPDF2 import PdfFileReader
+from os import listdir, rename, getcwd
+from os.path import join, dirname, basename, isdir, getsize, getmtime, getctime
+from utils import ask_if_dive
+import sys
+
+def clean(s):
+  if s is None:
+    return ""
+  return s.replace(",", "")
+
+def get_info(path):
+  with open(path, 'rb') as f:
+    try:
+      pdf = PdfFileReader(f)
+      info = pdf.getDocumentInfo()
+      number_of_pages = pdf.getNumPages()
+    except Exception as e:
+      print("Error while reading %s: %s" % (path, e), file=sys.stderr)
+      print("%s,%s,,,,,,,%d,%d,%d" % (clean(dirname(path)),
+        clean(basename(path)),
+        getsize(path), getctime(path), getmtime(path)))
+      return
+
+    if info is None:
+      print("Document info is None: %s" % path, file=sys.stderr)
+      print("%s,%s,,,,,,%d,%d,%d,%d" % (clean(dirname(path)),
+        clean(basename(path)), number_of_pages,
+        getsize(path), getctime(path), getmtime(path)))
+      return
+
+  author = clean(info.author)
+  creator = clean(info.creator)
+  producer = clean(info.producer)
+  subject = clean(info.subject)
+  title = clean(info.title)
+  print("%s,%s,%s,%s,%s,%s,%s,%d,%d,%d,%d" %
+    (clean(dirname(path)),
+    clean(basename(path)),
+    author, creator, producer, subject, title, number_of_pages,
+    getsize(path), getctime(path), getmtime(path)))
+
+def go_through(directory):
+  items = listdir(directory)
+  for item in items:
+    path = join(directory, item)
+    if item.endswith('.pdf'):
+      get_info(path)
+    elif isdir(path):
+      if ask_if_dive(path):
+        go_through(path)
+ 
+if __name__ == '__main__':
+  print("Path,Filename,Author,Creator,Producer,Subject,Title,Number of Pages,File Size,Creation Time,Modification Time")
+  directory = getcwd()
+  go_through(directory)
