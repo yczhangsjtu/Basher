@@ -6,7 +6,7 @@ import re
 from os.path import isdir, join, basename, abspath, expanduser, realpath, dirname, exists
 from os import listdir, rename, mkdir
 
-from utils import ask_if_dive, ask_if_default_false
+from utils import ask_if_dive, ask_if_default_false, truncate_text
 
 verbose = False
 rules = None
@@ -14,6 +14,7 @@ conf = None
 skips = None
 candidates = None
 dry_run = False
+maxlen = 0
 
 def usage():
   print(
@@ -22,13 +23,18 @@ usage: %s [options] path
   
   options
 
-  -h --help    Print this help text
-  -v --verbose Verbose mode
-  -d --dry     Dry run (only print, do not move)
+  -h --help       Print this help text
+  -v --verbose    Verbose mode
+  -d --dry        Dry run (only print, do not move)
+  -m --max-length Set maximum length for filename or directory, truncate if exceeds.
+                  Set it to 0 for no limit.
 
   "Note: Please modify ~/.basher/scripts/python/autoclean.conf before executing this command\n";
 """ % (sys.argv[0])
   )
+
+def truncate(text):
+  return truncate_text(text, maxlen, "...")
 
 def move_file(rule, path):
   need_confirm = True
@@ -36,23 +42,26 @@ def move_file(rule, path):
     need_confirm = rule["need_confirm"]
 
   dest = abspath(expanduser(rule["path"]))
-  print("DEST IS\n  [%s]\n" % dest)
+
+  if verbose:
+    print("DEST IS     [ %s ]" % truncate(dest))
+    print("FILENAME IS < %s >" % truncate(basename(path)))
+
   newpath = join(dest, basename(path))
-  print("FILENAME IS\n  <%s>\n" % basename(path))
   domove = True
 
   if need_confirm:
-    domove = ask_if_default_false("MOVE\n  <%s>\nTO\n  [%s]?\n" % (basename(path), dest))
+    domove = ask_if_default_false("MOVE  < %s >\nTO    [ %s ]?" % (truncate(basename(path)), dest))
 
   if domove and (verbose or dry_run):
-    print("MOVING\n  <%s>\nTO\n  [%s]\n" % (basename(path), dest))
+    print("MOVING  <%s>\nTO      [%s]\n" % (truncate(basename(path)), truncate(dest)))
 
   if domove and not dry_run:
     if not isdir(dest):
       if "auto_mkdir" in rule and rule["auto_mkdir"]:
         mkdir(dest)
       else:
-        print("DIR\n  [%s]\nNOT EXIST, SKIPPING" % dest)
+        print("DIR\n  [ %s ]\nNOT EXIST, SKIPPING" % truncate(dest))
 
     rename(path, newpath)
     return True
@@ -75,14 +84,14 @@ def move_file_if_match(rule, path):
   return False
 
 def move_file_by_prompt(path):
-  print("File\n <%s> \ndoes not match any rule" % basename(path))
+  print("File\n <%s> \ndoes not match any rule" % truncate(basename(path)))
   print("Candidate actions:")
   print()
   for i in range(len(candidates)):
     print("%d. Move to [%s]" % (i, candidates[i]))
   print("%d+. Skip" % len(candidates))
 
-  num = input("ACTION FOR FILE\n  <%s>:\n" % basename(path))
+  num = input("ACTION FOR FILE  <%s>:\n" % truncate(basename(path)))
 
   try:
     num = int(num)
@@ -92,7 +101,7 @@ def move_file_by_prompt(path):
     
   if num >= 0 and num < len(candidates):
     return move_file({
-      "need_confirm" : True,
+      "need_confirm" : False,
       "auto_mkdir" : False,
       "path" : candidates[num]
     }, path)
@@ -131,7 +140,7 @@ def autoclean(path):
 
 if __name__ == "__main__":
   try:
-    opts, args = getopt.getopt(sys.argv[1:], "hvd", ["help", "verbose", "dry"])
+    opts, args = getopt.getopt(sys.argv[1:], "hvdm:", ["help", "verbose", "dry", "max-length"])
   except getopt.GetoptError as err:
     print(str(err))
     usage()
@@ -150,6 +159,9 @@ if __name__ == "__main__":
       verbose = True
     elif opt in ("-d", "--dry"):
       dry_run = True
+    elif opt in ("-m", "--max-length"):
+      print("Maximum Length: %d" % int(arg))
+      maxlen = int(arg)
     else:
       assert False, "Unrecognized option: %s" % opt
 

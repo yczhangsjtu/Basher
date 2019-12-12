@@ -17,3 +17,7 @@ def ask_if_default_false(prompt):
 def ask_if_dive(path):
   return ask_if_default_true('(%s) is a directory, dive into it?' % path)
 
+def truncate_text(text, maxlen, join):
+  if maxlen <= 0 or len(text) <= maxlen:
+    return text
+  return "%s%s%s" % (text[:maxlen // 2], join, text[maxlen // 2 - maxlen:])
