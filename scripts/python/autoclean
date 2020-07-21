@@ -3,7 +3,9 @@
 import getopt, sys
 import json
 import re
-from os.path import isdir, join, basename, abspath, expanduser, realpath, dirname, exists
+from os.path import isdir, join,\
+  basename, abspath, expanduser,\
+  realpath, dirname, exists, getsize
 from os import listdir, rename, mkdir
 
 from utils import ask_if_dive, ask_if_default_false, truncate_text
@@ -12,6 +14,7 @@ verbose = False
 rules = None
 conf = None
 skips = None
+sizes = None
 candidates = None
 dry_run = False
 maxlen = 0
@@ -20,7 +23,7 @@ def usage():
   print(
 """
 usage: %s [options] path
-  
+
   options
 
   -h --help       Print this help text
@@ -35,6 +38,13 @@ usage: %s [options] path
 
 def truncate(text):
   return truncate_text(text, maxlen, "...")
+
+def determine_size_class(path):
+  size = getsize(path)
+  for name, threshold in sizes:
+    if threshold == -1 or threshold * 1024 * 1024 > size:
+      return name
+  return None
 
 def move_file(rule, path):
   need_confirm = True
@@ -63,7 +73,16 @@ def move_file(rule, path):
       else:
         print("DIR\n  [ %s ]\nNOT EXIST, SKIPPING" % truncate(dest))
 
-    rename(path, newpath)
+    if rule["size_classified"]:
+      size_class = determine_size_class(path)
+      if size_class is not None:
+        newpath = "%s/%s/%s" % (dirname(newpath), size_class, basename(newpath))
+        rename(path, newpath)
+      else:
+        print("Cannot determine size of %s (size %d)" % (path, getsize(path)))
+        sys.exit(-1)
+    else:
+      rename(path, newpath)
     return True
 
   return domove
@@ -98,7 +117,7 @@ def move_file_by_prompt(path):
   except:
     print("Skipping")
     return False
-    
+
   if num >= 0 and num < len(candidates):
     return move_file({
       "need_confirm" : False,
@@ -173,6 +192,10 @@ if __name__ == "__main__":
       skips = conf["skips"]
     else:
       skips = []
+    if "sizes" in conf:
+      sizes = conf["sizes"]
+    else:
+      sizes = []
     candidates = [rule["path"] for rule in rules]
     if "candidates" in conf:
       candidates.extend(conf["candidates"])
