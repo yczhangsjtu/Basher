@@ -73,7 +73,7 @@ def move_file(rule, path):
       else:
         print("DIR\n  [ %s ]\nNOT EXIST, SKIPPING" % truncate(dest))
 
-    if rule["size_classified"]:
+    if "size_classified" in rule and rule["size_classified"]:
       size_class = determine_size_class(path)
       if size_class is not None:
         newpath = "%s/%s/%s" % (dirname(newpath), size_class, basename(newpath))
@@ -122,6 +122,7 @@ def move_file_by_prompt(path):
     return move_file({
       "need_confirm" : False,
       "auto_mkdir" : False,
+      "size_classified" : True,
       "path" : candidates[num]
     }, path)
 
